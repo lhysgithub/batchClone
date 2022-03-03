@@ -1,9 +1,11 @@
 import argparse
-import os
+import os, stat
 from concurrent.futures import ThreadPoolExecutor
 
 from git import Repo  # gitpython
 from github import Github # pygithub
+from pathlib import Path
+import shutil
 import logging
 
 logger = logging.getLogger('logger')
@@ -35,12 +37,17 @@ with open(args.repos_file) as f:
 g = Github("ghp_1fPXYOqTXEQNX27U9zv9QmyKB5nv1Pp2zYV6V")
 executor = ThreadPoolExecutor(max_workers=2)
 
-start_epoch = 0
+start_epoch = 52
+
+def remove_readonly(func, path, _):
+    "Clear the readonly bit and reattempt the removal"
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
 
 def bulk_clone_repos():
     global start_epoch
     def get_dest(git_repo_url: str):
-        return os.path.join(args.project_path, git_repo_url.rsplit(".", maxsplit=1)[0].rsplit("/", maxsplit=1)[1])
+        return os.path.join(args.project_path, git_repo_url.split('.')[-2].split('/')[-1])
 
     try:
         repos_num = 0
@@ -64,11 +71,16 @@ def bulk_clone_repos():
                 continue
             repos_num += 1
             logger.info("epoch_num: {} repos_num: {} Git clone: [{}]".format(epoch_num, repos_num, repo))
+            dir_path = get_dest(repo)
+            dir = Path(dir_path)
+            if dir.exists():
+                shutil.rmtree(dir_path, onerror=remove_readonly)
             if args.multi_thread:
                 executor.submit(Repo.clone_from, repo, get_dest(repo))
             else:
                 Repo.clone_from(url=repo, to_path=get_dest(repo))
-    except:
+    except Exception as error:
+        print(error)
         bulk_clone_repos()
 
 
