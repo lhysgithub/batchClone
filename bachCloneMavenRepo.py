@@ -37,7 +37,7 @@ with open(args.repos_file) as f:
 g = Github("ghp_1fPXYOqTXEQNX27U9zv9QmyKB5nv1Pp2zYV6V")
 executor = ThreadPoolExecutor(max_workers=2)
 
-start_epoch = 52
+start_epoch = 110
 
 def remove_readonly(func, path, _):
     "Clear the readonly bit and reattempt the removal"
@@ -47,7 +47,7 @@ def remove_readonly(func, path, _):
 def bulk_clone_repos():
     global start_epoch
     def get_dest(git_repo_url: str):
-        return os.path.join(args.project_path, git_repo_url.split('.')[-2].split('/')[-1])
+        return os.path.join(args.project_path, git_repo_url.split('/')[-1].split('.git')[0])
 
     try:
         repos_num = 0
@@ -57,8 +57,8 @@ def bulk_clone_repos():
             if epoch_num < start_epoch:
                 continue
             start_epoch = epoch_num
-            repo_name = repo.split('.')[-2].split('/')[-1]
-            repo_user = repo.split('.')[-2].split('/')[-2]
+            repo_name = repo.split('/')[-1].split('.git')[0]
+            repo_user = repo.split('/')[-2]
             gitrepo = g.get_repo(repo_user + "/" + repo_name)
             contents = gitrepo.get_contents("")
             isMaven = 0
