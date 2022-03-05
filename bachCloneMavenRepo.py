@@ -42,7 +42,9 @@ g = Github("ghp_1fPXYOqTXEQNX27U9zv9QmyKB5nv1Pp2zYV6V")
 # future2 = Future()
 
 
-start_epoch = 1212
+start_epoch = 1420
+retry_times = 0
+retry_uper = 3
 
 def remove_readonly(func, path, _):
     "Clear the readonly bit and reattempt the removal"
@@ -53,6 +55,7 @@ def bulk_clone_repos():
     global start_epoch
     global future1
     global future2
+    global retry_times
     def get_dest(git_repo_url: str):
         return os.path.join(args.project_path, git_repo_url.split('/')[-1].split('.git')[0])
 
@@ -67,7 +70,7 @@ def bulk_clone_repos():
             repo_name = repo.split('/')[-1].split('.git')[0]
             repo_user = repo.split('/')[-2]
             time.sleep(5)
-            print("fetch " + repo_user + "/" + repo_name + " pom.xml")
+            logger.info("fetch " + repo_user + "/" + repo_name + " pom.xml")
             gitrepo = g.get_repo(repo_user + "/" + repo_name)
 
             contents = gitrepo.get_contents("")
@@ -107,6 +110,13 @@ def bulk_clone_repos():
         print(error)
         if error.args[0] == 404:
             start_epoch += 1
+            retry_times = 0
+            logger.info("can not fetch private repository "+ repo_user + "/" + repo_name)
+        if retry_times >= retry_uper:
+            start_epoch += 1
+            retry_times = 0
+            logger.info("can not fetch repository " + repo_user + "/" + repo_name)
+        retry_times += 1
         bulk_clone_repos()
 
 
