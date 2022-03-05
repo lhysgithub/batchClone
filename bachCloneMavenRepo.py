@@ -37,12 +37,12 @@ with open(args.repos_file) as f:
 
 # using access_token create github case
 g = Github("ghp_1fPXYOqTXEQNX27U9zv9QmyKB5nv1Pp2zYV6V")
-executor = ThreadPoolExecutor(max_workers=2)
-future1 = Future()
-future2 = Future()
+# executor = ThreadPoolExecutor(max_workers=2)
+# future1 = Future()
+# future2 = Future()
 
 
-start_epoch = 873
+start_epoch = 1212
 
 def remove_readonly(func, path, _):
     "Clear the readonly bit and reattempt the removal"
@@ -66,7 +66,10 @@ def bulk_clone_repos():
             start_epoch = epoch_num
             repo_name = repo.split('/')[-1].split('.git')[0]
             repo_user = repo.split('/')[-2]
+            time.sleep(5)
+            print("fetch " + repo_user + "/" + repo_name + " pom.xml")
             gitrepo = g.get_repo(repo_user + "/" + repo_name)
+
             contents = gitrepo.get_contents("")
             isMaven = 0
             for content_file in contents:
@@ -85,22 +88,25 @@ def bulk_clone_repos():
             if args.multi_thread:
                 # executor.submit(Repo.clone_from, url=repo, to_path=get_dest(repo))
                 # time.sleep(30)
-                while 1:
-                    print("future1.running: ", future1.running())
-                    print("future2.running: ", future2.running())
-                    print("future1.exception: ", future1.exception())
-                    print("future2.exception: ", future2.exception())
-                    if future1._state == 'PENDING':
-                        future1 = executor.submit(Repo.clone_from, url=repo, to_path=get_dest(repo))
-                        break
-                    if future2._state == 'PENDING':
-                        future2 = executor.submit(Repo.clone_from, url=repo, to_path=get_dest(repo))
-                        break
-                    time.sleep(30)
+                # while 1:
+                #     print("future1.running: ", future1.running())
+                #     print("future2.running: ", future2.running())
+                #     print("future1.exception: ", future1.exception())
+                #     print("future2.exception: ", future2.exception())
+                #     if future1._state == 'PENDING':
+                #         future1 = executor.submit(Repo.clone_from, url=repo, to_path=get_dest(repo))
+                #         break
+                #     if future2._state == 'PENDING':
+                #         future2 = executor.submit(Repo.clone_from, url=repo, to_path=get_dest(repo))
+                #         break
+                #     time.sleep(30)
+                break
             else:
                 Repo.clone_from(url=repo, to_path=get_dest(repo))
     except Exception as error:
         print(error)
+        if error.args[0] == 404:
+            start_epoch += 1
         bulk_clone_repos()
 
 
